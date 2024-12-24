@@ -191,21 +191,35 @@ def interpret_command_with_d(row, col, direction):
 def interpret_command_with_dl(row, col, direction):
     """
     Obrada komande za potez prema dole levo (DL).
+
+    Args:
+        row (int): Početni red.
+        col (int): Početna kolona.
+        direction (str): Smer poteza ("DL").
+
+    Returns:
+        list: Lista tačaka [(row, col), ...] koje čine potez.
+        str: Poruka o grešci ako potez nije validan.
     """
     points = [(row, col)]
     middle_row = len(points_per_row) // 2  # Središnji (najduži) red
 
     for i in range(1, 4):  # Dodavanje još tri tačke
-        next_row = row + i
+        next_row = row + i  # Pomera se na sledeći red
 
         if next_row >= len(points_per_row):  # Provera granica
             return None, "Potez izlazi iz granica table za DL!"
 
-        # Pravilno računa sledeći indeks kolone
-        if row < middle_row:  # Iznad najdužeg reda
-            next_col = col
-        elif row >= middle_row:  # U najdužem redu i ispod njega
+        # Provera sledeće kolone u zavisnosti od prelaza
+        if row < middle_row and next_row >= middle_row:
+            # Prelazak iznad na ispod najdužeg reda
+            next_col = col - (next_row - middle_row)
+        elif row >= middle_row:
+            # Redovi ispod najdužeg reda (smanjuje se za i)
             next_col = col - i
+        else:
+            # Redovi iznad najdužeg reda (kolona ostaje ista)
+            next_col = col
 
         # Provera validnosti sledeće tačke
         if next_col < 0 or next_col >= points_per_row[next_row]:
@@ -214,11 +228,6 @@ def interpret_command_with_dl(row, col, direction):
         points.append((next_row, next_col))
 
     return points, None
-
-
-
-
-
 
 def human_turn(symbol, color):
     while True:
@@ -273,42 +282,35 @@ def human_turn(symbol, color):
             print("Pogrešno je uneto, unesi ponovo.")
 
 
-
-
-
 def computer_turn(symbol, color):
     attempts = 0
     while attempts < 100:
         row = random.randint(0, len(points_per_row) - 1)
-        col_start = random.randint(0, points_per_row[row] - 4)
-        direction = random.choice(['horizontal', 'diagonal_down', 'diagonal_up'])
+        col = random.randint(0, points_per_row[row] - 1)
+        direction = random.choice(['D', 'DL', 'DD'])
 
-        if direction == 'horizontal':
-            points = [(row, col_start + i) for i in range(4)]
-        elif direction == 'diagonal_down':
-            if row + 3 < len(points_per_row) and all(col_start + i < points_per_row[row + i] for i in range(4)):
-                points = [(row + i, col_start + i) for i in range(4)]
-            else:
-                attempts += 1
-                continue
-        elif direction == 'diagonal_up':
-            if row - 3 >= 0 and all(col_start + i < points_per_row[row - i] for i in range(4)):
-                points = [(row - i, col_start + i) for i in range(4)]
-            else:
-                attempts += 1
-                continue
+        if direction == 'D':
+            points, error = interpret_command_with_d(row, col, direction)
+        elif direction == 'DL':
+            points, error = interpret_command_with_dl(row, col, direction)
+        elif direction == 'DD':
+            points, error = interpret_command_with_dd(row, col, direction)
+        else:
+            error = "Nepoznat pravac"
 
-        valid = True
-        for i in range(1, len(points)):
-            if points[i] not in potential_neighbors[points[i-1]]:  # Provera validnosti suseda
-                valid = False
-                break
+        if error:
+            attempts += 1
+            continue
 
-        if valid and tuple(sorted(points)) not in drawn_lines:
+        # Provera da li su tačke već povezane
+        if tuple(sorted(points)) not in drawn_lines:
             return add_line(points, symbol, color)
+
         attempts += 1
+
     print("Računar nije uspeo da pronađe validan potez.")
     return False, None
+
 
 def get_valid_size_input():
     while True:
