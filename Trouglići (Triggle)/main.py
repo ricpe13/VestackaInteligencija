@@ -135,7 +135,8 @@ def add_line(points, player, color='red'):
                     triangle_count[player] += 1
                     plt.pause(0.1)  # Ažuriraj prikaz odmah nakon iscrtavanja simbola trougla
                     if triangle_count[player] > max_triangles / 2:
-                        print(f"Igrač {player} je pobedio!")
+                        print(f"Igrač sa simbolom {player} je pobedio!")
+                        display_game_over_message()
                         plt.ioff()
                         plt.show()
                         return True, None
@@ -208,7 +209,7 @@ def interpret_command_with_dl(row, col, direction):
         next_row = row + i  # Pomera se na sledeći red
 
         if next_row >= len(points_per_row):  # Provera granica
-            return None, "Potez izlazi iz granica table za DL!"
+            return None, "Potez nije validan (prelazi granice table)"
 
         # Provera sledeće kolone u zavisnosti od prelaza
         if row < middle_row and next_row >= middle_row:
@@ -223,7 +224,7 @@ def interpret_command_with_dl(row, col, direction):
 
         # Provera validnosti sledeće tačke
         if next_col < 0 or next_col >= points_per_row[next_row]:
-            return None, "Potez nije validan za DL!"
+            return None, "Potez nije validan (prelazi granice table)"
 
         points.append((next_row, next_col))
 
@@ -339,6 +340,31 @@ def get_valid_symbol_input():
         else:
             print("Pogrešan unos! Molimo unesite 'X' ili 'O'.")
 
+def display_game_over_message():
+    """
+    Prikazuje poruku 'Završena igra' preko table.
+    """
+    # Dimenzije i boje
+    rect_width = max_cols
+    rect_height = len(points_per_row) / 2
+    rect_color = 'black'
+    text_color = 'white'
+
+    # Koordinate pravougaonika (centar tabele)
+    center_x = max_cols / 2
+    center_y = -len(points_per_row) / 2
+
+    # Crtanje pravougaonika preko cele table
+    ax.add_patch(plt.Rectangle(
+        (center_x - rect_width / 2, center_y - rect_height / 2),
+        rect_width, rect_height, color=rect_color, zorder=2
+    ))
+
+    # Dodavanje teksta preko pravougaonika
+    ax.text(center_x, center_y, 'ZAVRŠENA IGRA', fontsize=30, ha='center', va='center', color=text_color, zorder=3)
+    plt.draw()
+
+
 # Glavni deo programa
 size = get_valid_size_input()
 game_mode = get_valid_game_mode_input()  # Dodajemo unos za mod igre
@@ -379,6 +405,7 @@ while True:
             current_player = 'human'
 
     if game_over:
+        display_game_over_message()
         print(f"{player_1} je zauzeo {triangle_count['X']} trouglova.")
         print(f"{player_2} je zauzeo {triangle_count['O']} trouglova.")
         break
